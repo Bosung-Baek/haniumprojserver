@@ -3,8 +3,55 @@ from flask import Flask, jsonify, request
 from models import db, User, Task, TaskStatus, Image
 
 app = Flask(__name__)
+@app.route('/user', methods=['POST'])
+def create_user():
+    name = request.get_json().get('name')
+    admin = request.get_json().get('admin')
+    if name:
+        new_user = User(name=name, admin=admin)
+        db.session.add(new_user)
+        db.session.commit()
+        return jsonify({'id': new_user.id, 'name': name, 'admin': admin}), 201
+    else:
+        return jsonify({'error': 'No name provided'}), 400
 
-@app.route('/user/<int:id>', methods=['GET', 'POST', 'DELETE'])
+@app.route('/task', methods=['POST'])
+def create_task():
+    text = request.get_json().get('text')
+    user_id = request.get_json().get('user_id')
+    if text and user_id:
+        new_task = Task(text=text, user_id=user_id)
+        db.session.add(new_task)
+        db.session.commit()
+        return jsonify({'id': new_task.id, 'text': text, 'user_id': user_id}), 201
+    else:
+        return jsonify({'error': 'No text or user_id provided'}), 400
+
+@app.route('/status', methods=['POST'])
+def create_status():
+    boolean = request.get_json().get('boolean')
+    task_id = request.get_json().get('task_id')
+    if boolean is not None and task_id:
+        new_status = TaskStatus(boolean=boolean, task_id=task_id)
+        db.session.add(new_status)
+        db.session.commit()
+        return jsonify({'id': new_status.id, 'boolean': boolean, 'task_id': task_id}), 201
+    else:
+        return jsonify({'error': 'No boolean or task_id provided'}), 400
+
+@app.route('/image', methods=['POST'])
+def create_image():
+    bitmap = request.get_json().get('bitmap')
+    task_id = request.get_json().get('task_id')
+    if bitmap and task_id:
+        new_image = Image(bitmap=bitmap, task_id=task_id)
+        db.session.add(new_image)
+        db.session.commit()
+        return jsonify({'id': new_image.id, 'bitmap': 'Image uploaded', 'task_id': task_id}), 201
+    else:
+        return jsonify({'error': 'No bitmap or task_id provided'}), 400
+
+@app.route('/user/<int:id>', methods=['GET', 'DELETE'])
 def handle_user(id):
     user = User.query.get(id)
     
@@ -16,12 +63,14 @@ def handle_user(id):
             return jsonify({'error': 'User not found'}), 404
             
     elif request.method == 'POST':
+        
         name = request.get_json().get('name')
+        admin = request.get_json().get('admin')
         if name:
-            new_user = User(id=id, name=name)
+            new_user = User(id=id, name=name, admin=admin)
             db.session.add(new_user)
             db.session.commit()
-            return jsonify({'id': id, 'name': name}), 201
+            return jsonify({'id': id, 'name': name, 'admin': admin}), 201
         else:
             return jsonify({'error': 'No name provided'}), 400
 
@@ -33,7 +82,7 @@ def handle_user(id):
         else:
             return jsonify({'error': 'User not found'}), 404
 
-@app.route('/task/<int:id>', methods=['GET', 'POST', 'DELETE'])
+@app.route('/task/<int:id>', methods=['GET', 'DELETE'])
 def handle_task(id):
     task = Task.query.get(id)
     
@@ -64,7 +113,7 @@ def handle_task(id):
         else:
             return jsonify({'error': 'Task not found'}), 404
 
-@app.route('/status/<int:id>', methods=['POST', 'DELETE'])
+@app.route('/status/<int:id>', methods=['DELETE'])
 def handle_status(id):
     if request.method == 'POST':
         boolean = request.get_json().get('boolean')
@@ -86,7 +135,7 @@ def handle_status(id):
         else:
             return jsonify({'error': 'Status not found'}), 404
 
-@app.route('/image/<int:id>', methods=['POST', 'DELETE'])
+@app.route('/image/<int:id>', methods=['DELETE'])
 def handle_image(id):
     if request.method == 'POST':
         bitmap = request.get_json().get('bitmap')
